@@ -38,7 +38,7 @@ $ git clone https://github.com/krasimirstoev/node-exporter-ansible-playbook.git
 
 Use the following command to run the playbook:
 ```bash
-$ ansible-playbook install.yml -i hosts.ini -e node_exporter_version=1.6.1
+$ ansible-playbook install.yml -i hosts.ini -e node_exporter_version=1.8.2
 ```
 - Replace ```hosts.ini``` with the inventory file specifying the target hosts.
 
