@@ -1,0 +1,59 @@
+- name: Install and configure node_exporter
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Ensure node_exporter user exists
+      ansible.builtin.user:
+        name: "{{ node_exporter_user }}"
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+
+    - name: Download node_exporter archive
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
+        mode: "0644"
+      register: downloaded_archive
+
+    - name: Extract node_exporter archive
+      ansible.builtin.unarchive:
+        src: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
+        dest: "{{ node_exporter_tmp_dir }}/"
+        remote_src: yes
+      when: downloaded_archive.changed
+
+    - name: Install node_exporter binary
+      ansible.builtin.copy:
+        src: "{{ node_exporter_tmp_dir }}/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        dest: "{{ node_exporter_install_dir }}/node_exporter"
+        mode: "0755"
+        owner: root
+        group: root
+      notify: Restart node_exporter
+
+    - name: Install systemd service unit
+      ansible.builtin.template:
+        src: "node_exporter.service.j2"
+        dest: "{{ node_exporter_service }}"
+        mode: "0644"
+      notify: Restart node_exporter
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable node_exporter
+      ansible.builtin.systemd:
+        name: node_exporter
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Restart node_exporter
+      ansible.builtin.systemd:
+        name: node_exporter
+        state: restarted
